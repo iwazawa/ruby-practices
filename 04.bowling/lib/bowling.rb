@@ -27,7 +27,7 @@ frames.each.with_index do |frame, i|
   next_frame = frames[i + 1]
   after_next_frame = frames[i + 2]
   # 9フレームまで
-  point += 
+  point +=
     if i < 9
       if frame[0] == 10 # ストライク
         if next_frame[0] == 10 # 次のフレームもストライク
