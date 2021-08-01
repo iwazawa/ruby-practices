@@ -16,10 +16,7 @@ scores.each do |s|
 end
 
 # フレームごとにまとめる
-frames = []
-shots.each_slice(2) do |frame|
-  frames << frame
-end
+frames = shots.each_slice(2).to_a
 
 # スコア計算開始
 point = 0
