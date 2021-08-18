@@ -11,56 +11,37 @@ opt.on('-r') { options << 'r' }
 opt.on('-l') { options << 'l' }
 opt.parse(ARGV)
 
-files = []
-
-# -aオプション以外のファイル一覧取得用
-def get_file_not_option_a(files)
-  Dir.foreach('.') do |file|
-    next if file.match?(/^\.\w*/)
-
-    files << file
-  end
-  files.sort!
+def search_file_not_option_a
+  Dir.glob('*')
 end
 
-# -aオプション指定時のファイル一覧取得用
-def get_file_option_a(files)
-  Dir.foreach('.') do |file|
-    files << file
-  end
-  files.sort!
+def search_file_option_a
+  Dir.glob('*', File::FNM_DOTMATCH)
 end
 
-# -rオプション指定時のファイル一覧反転用
 def reverse_file_list(files)
   files.reverse!
 end
 
-# -lオプション以外の出力用
 def output_not_option_l(files)
-  # 3つにグルーピング
-  grouped_items = []
-  files.each_slice(files.size / 3 + 1) do |file|
-    grouped_items << file
-  end
-  # 各配列のn番目の要素ごとに配列を再構成
-  lists = []
-  grouped_items.each do |grouped_item|
-    grouped_item.each.with_index do |file, i|
-      lists[i] = [] if lists[i].nil?
-      lists[i] << file
+  column_number = 3
+  row_number =
+    if (files.size % column_number).zero?
+      files.size / column_number
+    else
+      files.size / column_number + 1
     end
+  max_length = files.map(&:size).max
+  lists = Array.new(row_number) { [] }
+  files.each_with_index do |file, index|
+    list_number = index % row_number
+    file = file.ljust(max_length + 6)
+    lists[list_number].push(file)
   end
-  lists.each do |list|
-    list.each do |file|
-      print file.ljust(20)
-    end
-    puts
-  end
+  lists.each { |list| puts list.join }
 end
 
-# ファイルタイプ取得
-def get_file_type(file)
+def file_type(file)
   {
     'file' => '-',
     'directory' => 'd',
@@ -68,8 +49,7 @@ def get_file_type(file)
   }[File.ftype(file)]
 end
 
-# パーミッション取得
-def get_file_permission(file)
+def file_permission(file)
   permission = ''
   fs = File.stat(file).mode.to_s(8)[-3, 3]
   fs.each_char do |s|
@@ -88,63 +68,50 @@ def get_file_permission(file)
   permission
 end
 
-# オーナー名取得
-def get_file_owner(file)
+def file_owner(file)
   owner_id = File.stat(file).uid
   Etc.getpwuid(owner_id).name
 end
 
-# グループ名取得
-def get_file_group(file)
+def file_group(file)
   group_id = File.stat(file).gid
   Etc.getgrgid(group_id).name
 end
 
-# タイムスタンプ取得
-def get_file_time(file)
+def file_time(file)
   File.stat(file).mtime.strftime('%-m月 %d %R')
 end
 
-# ブロック数取得
-def get_file_blocks(file)
+def file_blocks(file)
   File.stat(file).blocks
 end
 
-if options.include?('a') # aオプション
-  get_file_option_a(files)
-else
-  get_file_not_option_a(files)
-end
+files =
+  if options.include?('a') # aオプション
+    search_file_option_a
+  else
+    search_file_not_option_a
+  end
 
 reverse_file_list(files) if options.include?('r') # rオプション
 
-files_l = []
-total_blocks = 0
 if options.include?('l')
-  files.each do |file|
-    filetype = get_file_type(file)
-    permission = get_file_permission(file)
-    owner_name = get_file_owner(file)
-    group_name = get_file_group(file)
-    timestamp = get_file_time(file)
-    total_blocks += get_file_blocks(file)
-
-    files_l <<
-      {
-        type: filetype,
-        perm: permission,
-        link: File.stat(file).nlink.to_s,
-        owner: owner_name,
-        group: group_name,
-        size: File.stat(file).size.to_s,
-        time: timestamp,
-        name: file
-      }
+  files_l = files.map do |file|
+    [
+      file_type(file),
+      file_permission(file),
+      File.stat(file).nlink.to_s,
+      file_owner(file),
+      file_group(file),
+      File.stat(file).size.to_s,
+      file_time(file),
+      file
+    ]
   end
-
+  total_blocks = files.map { |file| file_blocks(file) }.sum
   puts "total #{total_blocks}"
   files_l.each do |f|
-    puts "#{f[:type]}#{f[:perm]} #{f[:link].rjust(3)} #{f[:owner].rjust(12)}  #{f[:group]}  #{f[:size].rjust(5)} #{f[:time].rjust(12)} #{f[:name]}"
+    puts "#{f[0]}#{f[1]} #{f[2].rjust(3)} #{f[3].rjust(12)}  #{f[4]}  #{f[5].rjust(5)} #{f[6].rjust(12)} #{f[7]}"
   end
 else
   output_not_option_l(files)
