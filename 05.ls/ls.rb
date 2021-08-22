@@ -12,11 +12,11 @@ opt.on('-l') { options << 'l' }
 opt.parse(ARGV)
 
 def search_file_not_option_a
-  Dir.glob('*')
+  Dir.glob('*').sort
 end
 
 def search_file_option_a
-  Dir.glob('*', File::FNM_DOTMATCH)
+  Dir.glob('*', File::FNM_DOTMATCH).sort
 end
 
 def reverse_file_list(files)
