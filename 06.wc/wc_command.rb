@@ -4,8 +4,7 @@ require 'optparse'
 
 def main
   params = ARGV.getopts('l')
-  files = ARGV
-  ARGV.empty? ? standard_input(params['l']) : file_input(params['l'], files)
+  ARGV.empty? ? standard_input(params['l']) : file_input(params['l'], ARGV)
 end
 
 def standard_input(lines)
